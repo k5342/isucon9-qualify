@@ -278,41 +278,67 @@ module Isucari
       created_at = params['created_at'].to_i
 
       db.query('BEGIN')
-      items = if item_id > 0 && created_at > 0
+      #items = if item_id > 0 && created_at > 0
         # paging
-        begin
-          db.xquery("SELECT * FROM `items` WHERE (`seller_id` = ? OR `buyer_id` = ?) AND `status` IN (?, ?, ?, ?, ?) AND (`created_at` < ?  OR (`created_at` <= ? AND `id` < ?)) ORDER BY `created_at` DESC, `id` DESC LIMIT #{TRANSACTIONS_PER_PAGE + 1}", user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, Time.at(created_at), Time.at(created_at), item_id)
-        rescue
-          db.query('ROLLBACK')
-          halt_with_error 500, 'db error'
-        end
-      else
+        #begin
+        #  db.xquery("SELECT * FROM `items` WHERE (`seller_id` = ? OR `buyer_id` = ?) AND `status` IN (?, ?, ?, ?, ?) AND (`created_at` < ?  OR (`created_at` <= ? AND `id` < ?)) ORDER BY `created_at` DESC, `id` DESC LIMIT #{TRANSACTIONS_PER_PAGE + 1}", user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, Time.at(created_at), Time.at(created_at), item_id)
+        #rescue
+        #  db.query('ROLLBACK')
+        #  halt_with_error 500, 'db error'
+        #end
+      #else
         # 1st page
-        begin
-          db.xquery("SELECT * FROM `items` WHERE (`seller_id` = ? OR `buyer_id` = ?) AND `status` IN (?, ?, ?, ?, ?) ORDER BY `created_at` DESC, `id` DESC LIMIT #{TRANSACTIONS_PER_PAGE + 1}", user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP)
-        rescue
-          db.query('ROLLBACK')
-          halt_with_error 500, 'db error'
-        end
-      end
+       # begin
+       #   db.xquery("SELECT * FROM `items` WHERE (`seller_id` = ? OR `buyer_id` = ?) AND `status` IN (?, ?, ?, ?, ?) ORDER BY `created_at` DESC, `id` DESC LIMIT #{TRANSACTIONS_PER_PAGE + 1}", user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP)
+       # rescue
+       #   db.query('ROLLBACK')
+       #   halt_with_error 500, 'db error'
+       # end
+      #end
+      #
+      sql = <<SQK
+SELECT `items`.id, `items`.seller_id, su.account_name as seller_account_name, su.num_sell_items as seller_num_sell_items, bu.account_name as buyer_account_name, bu.num_sell_items as buyer_num_sell_items, `items`.buyer_id, `items`.status, name, price, description, image_name, `items`.created_at, `items`.updated_at, c.id as category_id, c.parent_id, c.category_name, p.`category_name` as parent_category_name, `transaction_evidences`.id as evidence_id, `transaction_evidences`.status as evidence_status, `shippings`.reserve_id
+FROM `items`
+INNER JOIN `categories` as c
+ON items.category_id=c.id 
+INNER JOIN categories as p ON c.parent_id = p.id
+LEFT OUTER JOIN `users`as su
+ON `items`.seller_id=su.id
+LEFT OUTER JOIN `users` as bu
+ON `items`.buyer_id=bu.id 
+LEFT OUTER JOIN `transaction_evidences`
+ON `transaction_evidences`.item_id=`items`.id
+LEFT OUTER JOIN `shippings`
+ON `shippings`.transaction_evidence_id=`transaction_evidences`.id
+WHERE (`items`.seller_id = ? OR `items`.buyer_id = ?) 
+AND `items`.status IN (?, ?, ?, ?, ?)
+SQK
+      item_all = if item_id > 0 && created_at > 0
+                  sql_str = sql +  "AND (`items`.created_at < ?  OR (`items`.created_at <= ? AND `items`.id < item_id)) ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT ?"
+                   db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, Time.at(created_at), Time.at(created_at), item_id, TRANSACTIONS_PER_PAGE + 1)
+                else
+                  sql_str = sql + "ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT ?"
+                   db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, TRANSACTIONS_PER_PAGE + 1)
+                end
 
-      item_details = items.map do |item|
-        seller = get_user_simple_by_id(item['seller_id'])
-        if seller.nil?
-          db.query('ROLLBACK')
-          halt_with_error 404, 'seller not found'
-        end
 
-        category = get_category_by_id(item['category_id'])
-        if category.nil?
-          db.query('ROLLBACK')
-          halt_with_error 404, 'category not found'
+      item_details = item_all.map do |item|
+        ssr = unless item['reserve_id'].nil?
+          begin
+            api_client.shipment_status(get_shipment_service_url, 'reserve_id' => item['reserve_id'])
+          rescue
+            db.query('ROLLBACK')
+            halt_with_error 500, 'failed to request to shipment service'
+          end
         end
-
         item_detail = {
           'id' => item['id'],
           'seller_id' => item['seller_id'],
-          'seller' => seller,
+          'seller' => {
+              'id' => item['seller_id'],
+              'account_name' => item['seller_account_name'],
+              'num_sell_items' => item['seller_num_sell_items']
+          },
           # buyer_id
           # buyer
           'status' => item['status'],
@@ -324,43 +350,26 @@ module Isucari
           # transaction_evidence_id
           # transaction_evidence_status
           # shipping_status
-          'category' => category,
-          'created_at' => item['created_at'].to_i
+          'category' => {
+              'id' => item['category_id'],
+              'parent_id' => item['parent_id'],
+              'category_name' => item['category_name'],
+              'parent_category_name' => item['parent_category_name']
+          },
+          'created_at' => item['created_at'].to_i,
+          'buyer_id' => item['buyer_id'],
+          'buyey' => {
+              'id' => item['buyer_id'],
+              'account_name' => item['buyer_account_name'],
+              'num_sell_items' => item['buyer_num_sell_items']
+          },
+          'transaction_evidence_id' => item['evidence_id'],
+          'transaction_evidence_status' => item['evidence_status'],
+          'shipping_status' => ssr['status']
         }
-
-        if item['buyer_id'] != 0
-          buyer = get_user_simple_by_id(item['buyer_id'])
-          if buyer.nil?
-            db.query('ROLLBACK')
-            halt_with_error 404, 'buyer not found'
-          end
-
-          item_detail['buyer_id'] = item['buyer_id']
-          item_detail['buyey'] = buyer
-        end
-
-        transaction_evidence = db.xquery('SELECT * FROM `transaction_evidences` WHERE `item_id` = ?', item['id']).first
-        unless transaction_evidence.nil?
-          shipping = db.xquery('SELECT * FROM `shippings` WHERE `transaction_evidence_id` = ?', transaction_evidence['id']).first
-          if shipping.nil?
-            db.query('ROLLBACK')
-            halt_with_error 404, 'shipping not found'
-          end
-
-          ssr = begin
-            api_client.shipment_status(get_shipment_service_url, 'reserve_id' => shipping['reserve_id'])
-          rescue
-            db.query('ROLLBACK')
-            halt_with_error 500, 'failed to request to shipment service'
-          end
-
-          item_detail['transaction_evidence_id'] = transaction_evidence['id']
-          item_detail['transaction_evidence_status'] = transaction_evidence['status']
-          item_detail['shipping_status'] = ssr['status']
-        end
-
         item_detail
       end
+      item_details
 
       db.query('COMMIT')
 
