@@ -327,9 +327,9 @@ SQL
                 else
                   sql_str = sql + <<SQL
                   
-SQL"ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT ?"
+"ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT #{TRANSACTIONS_PER_PAGE + 1}"
 SQL
-                   db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, TRANSACTIONS_PER_PAGE + 1)
+                   db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP)
                 end
 
       item_details = item_all.map do |item|
