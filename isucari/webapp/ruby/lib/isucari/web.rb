@@ -297,6 +297,14 @@ module Isucari
       end
 
       item_details = items.map do |item|
+        item_detail = {
+            'shipping_status' => 403
+        }
+      end
+
+      return item_details
+
+      item_details = items.map do |item|
         seller = get_user_simple_by_id(item['seller_id'])
         if seller.nil?
           db.query('ROLLBACK')
