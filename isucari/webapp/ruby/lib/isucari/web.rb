@@ -302,7 +302,7 @@ module Isucari
 SELECT `items`.id, `items`.seller_id, su.account_name as seller_account_name, su.num_sell_items as seller_num_sell_items, bu.account_name as buyer_account_name, bu.num_sell_items as buyer_num_sell_items, `items`.buyer_id, `items`.status, name, price, description, image_name, `items`.created_at, `items`.updated_at, c.id as category_id, c.parent_id, c.category_name, p.`category_name` as parent_category_name, `transaction_evidences`.id as evidence_id, `transaction_evidences`.status as evidence_status, `shippings`.reserve_id
 FROM (SELECT * 
     FROM `items`
-    WHERE (`items`.seller_id = 1 OR `items`.buyer_id = 10) 
+    WHERE (`items`.seller_id = ? OR `items`.buyer_id = ?) 
     AND `items`.status IN (?, ?, ?, ?, ?)
     AND (`items`.created_at < ?  OR (`items`.created_at <= ? AND `items`.id < ?))
     )as `items`
@@ -326,7 +326,7 @@ SQL
 SELECT `items`.id, `items`.seller_id, su.account_name as seller_account_name, su.num_sell_items as seller_num_sell_items, bu.account_name as buyer_account_name, bu.num_sell_items as buyer_num_sell_items, `items`.buyer_id, `items`.status, name, price, description, image_name, `items`.created_at, `items`.updated_at, c.id as category_id, c.parent_id, c.category_name, p.`category_name` as parent_category_name, `transaction_evidences`.id as evidence_id, `transaction_evidences`.status as evidence_status, `shippings`.reserve_id
 FROM (SELECT * 
     FROM `items`
-    WHERE (`items`.seller_id = 1 OR `items`.buyer_id = 10) 
+    WHERE (`items`.seller_id = ? OR `items`.buyer_id = ?) 
     AND `items`.status IN (?, ?, ?, ?, ?)
     )as `items`
 INNER JOIN `categories` as c
