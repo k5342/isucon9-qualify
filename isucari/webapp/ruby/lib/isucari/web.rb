@@ -312,6 +312,7 @@ LEFT OUTER JOIN `shippings`
 ON `shippings`.transaction_evidence_id=`transaction_evidences`.id
 WHERE (`items`.seller_id = ? OR `items`.buyer_id = ?) 
 AND `items`.status IN (?, ?, ?, ?, ?)
+
 SQK
       item_all = if item_id > 0 && created_at > 0
                   sql_str = sql + "AND (`items`.created_at < ?  OR (`items`.created_at <= ? AND `items`.id < ?)) ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT ?"
