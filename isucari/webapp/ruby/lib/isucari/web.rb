@@ -312,11 +312,14 @@ LEFT OUTER JOIN `shippings`
 ON `shippings`.transaction_evidence_id=`transaction_evidences`.id
 WHERE (`items`.seller_id = ? OR `items`.buyer_id = ?) 
 AND `items`.status IN (?, ?, ?, ?, ?)
-
 SQK
       item_all = if item_id > 0 && created_at > 0
-                  sql_str = sql + "AND (`items`.created_at < ?  OR (`items`.created_at <= ? AND `items`.id < ?)) ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT ?"
-                   db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, Time.at(created_at), Time.at(created_at), item_id, TRANSACTIONS_PER_PAGE + 1)
+                  sql_str = <<SQL
+AND (`items`.created_at < ?  OR (`items`.created_at <= ? AND `items`.id < ?)) 
+ORDER BY `items`.created_at DESC,`items`.id DESC 
+LIMIT ?
+SQL
+                   db.xquery(sql + sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, Time.at(created_at), Time.at(created_at), item_id, TRANSACTIONS_PER_PAGE + 1)
                 else
                   sql_str = sql + "ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT ?"
                    db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, TRANSACTIONS_PER_PAGE + 1)
