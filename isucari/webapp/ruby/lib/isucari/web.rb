@@ -325,7 +325,10 @@ LIMIT ?
 SQL
                    db.xquery(sql + sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, Time.at(created_at), Time.at(created_at), item_id, TRANSACTIONS_PER_PAGE + 1)
                 else
-                  sql_str = sql + "ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT ?"
+                  sql_str = sql + <<SQL
+                  
+SQL"ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT ?"
+SQL
                    db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, TRANSACTIONS_PER_PAGE + 1)
                 end
 
