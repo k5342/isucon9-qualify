@@ -272,6 +272,8 @@ module Isucari
 
     # getTransactions
     get '/users/transactions.json' do
+      halt_with_error 500, 'failed to request to shipment service'
+      return
       user = get_user
 
       item_id = params['item_id'].to_i
