@@ -327,7 +327,7 @@ module Isucari
             'created_at' => item['created_at'].to_i,
             'shipping_status' => 403
         }
-        return item_detail
+        item_detail
       end
 
       return item_details
