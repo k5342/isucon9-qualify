@@ -158,7 +158,7 @@ module Isucari
 
       response = {
         # キャンペーン実施時には還元率の設定を返す。詳しくはマニュアルを参照のこと。
-        'campaign' => 3,
+        'campaign' => 2,
         # 実装言語を返す
         'language' => 'ruby',
       }
@@ -307,16 +307,16 @@ FROM (SELECT *
     AND (`items`.created_at < ?  OR (`items`.created_at <= ? AND `items`.id < ?))
     )as `items`
 INNER JOIN `categories` as c
-ON items.category_id=c.id 
+ON (items.category_id=c.id) 
 INNER JOIN categories as p ON c.parent_id = p.id
 LEFT OUTER JOIN `users`as su
-ON `items`.seller_id=su.id
+ON (`items`.seller_id=su.id)
 LEFT OUTER JOIN `users` as bu
-ON `items`.buyer_id=bu.id 
+ON (`items`.buyer_id=bu.id) 
 LEFT OUTER JOIN `transaction_evidences`
-ON `transaction_evidences`.item_id=`items`.id
+ON (`transaction_evidences`.item_id=`items`.id)
 LEFT OUTER JOIN `shippings`
-ON `shippings`.transaction_evidence_id=`transaction_evidences`.id
+ON (`shippings`.transaction_evidence_id=`transaction_evidences`.id)
 ORDER BY `items`.created_at DESC,`items`.id DESC
 LIMIT  #{TRANSACTIONS_PER_PAGE + 1}
 SQL
@@ -330,16 +330,16 @@ FROM (SELECT *
     AND `items`.status IN (?, ?, ?, ?, ?)
     )as `items`
 INNER JOIN `categories` as c
-ON items.category_id=c.id 
-INNER JOIN categories as p ON c.parent_id = p.id
+ON (items.category_id=c.id) 
+INNER JOIN categories as p ON (c.parent_id = p.id)
 LEFT OUTER JOIN `users`as su
-ON `items`.seller_id=su.id
+ON (`items`.seller_id=su.id)
 LEFT OUTER JOIN `users` as bu
-ON `items`.buyer_id=bu.id 
+ON (`items`.buyer_id=bu.id) 
 LEFT OUTER JOIN `transaction_evidences`
-ON `transaction_evidences`.item_id=`items`.id
+ON (`transaction_evidences`.item_id=`items`.id)
 LEFT OUTER JOIN `shippings`
-ON `shippings`.transaction_evidence_id=`transaction_evidences`.id
+ON (`shippings`.transaction_evidence_id=`transaction_evidences`.id)
 ORDER BY `items`.created_at DESC,`items`.id DESC
 LIMIT  #{TRANSACTIONS_PER_PAGE + 1}
 SQL
