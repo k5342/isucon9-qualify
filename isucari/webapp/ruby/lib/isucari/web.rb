@@ -296,9 +296,16 @@ module Isucari
        # end
       #end
       #
-      sql = <<SQK
+
+      item_all = if item_id > 0 && created_at > 0
+                  sql_str = <<SQL
 SELECT `items`.id, `items`.seller_id, su.account_name as seller_account_name, su.num_sell_items as seller_num_sell_items, bu.account_name as buyer_account_name, bu.num_sell_items as buyer_num_sell_items, `items`.buyer_id, `items`.status, name, price, description, image_name, `items`.created_at, `items`.updated_at, c.id as category_id, c.parent_id, c.category_name, p.`category_name` as parent_category_name, `transaction_evidences`.id as evidence_id, `transaction_evidences`.status as evidence_status, `shippings`.reserve_id
-FROM `items`
+FROM (SELECT * 
+    FROM `items`
+    WHERE (`items`.seller_id = 1 OR `items`.buyer_id = 10) 
+    AND `items`.status IN (?, ?, ?, ?, ?)
+    AND (`items`.created_at < ?  OR (`items`.created_at <= ? AND `items`.id < ?))
+    )as `items`
 INNER JOIN `categories` as c
 ON items.category_id=c.id 
 INNER JOIN categories as p ON c.parent_id = p.id
@@ -310,20 +317,31 @@ LEFT OUTER JOIN `transaction_evidences`
 ON `transaction_evidences`.item_id=`items`.id
 LEFT OUTER JOIN `shippings`
 ON `shippings`.transaction_evidence_id=`transaction_evidences`.id
-WHERE (`items`.seller_id = ? OR `items`.buyer_id = ?) 
-AND `items`.status IN (?, ?, ?, ?, ?)
-SQK
-      item_all = if item_id > 0 && created_at > 0
-                  sql_str = <<SQL
-AND (`items`.created_at < ?  OR (`items`.created_at <= ? AND `items`.id < ?)) 
-ORDER BY `items`.created_at DESC,`items`.id DESC 
-LIMIT #{TRANSACTIONS_PER_PAGE + 1}
+ORDER BY `items`.created_at DESC,`items`.id DESC
+LIMIT  #{TRANSACTIONS_PER_PAGE + 1}
 SQL
-                   db.xquery(sql + sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, Time.at(created_at), Time.at(created_at), item_id)
+                   db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP, Time.at(created_at), Time.at(created_at), item_id)
                 else
-                  sql_str = sql + <<SQL
-                  
-ORDER BY `items`.created_at DESC,`items`.id DESC LIMIT #{TRANSACTIONS_PER_PAGE + 1}
+                  sql_str = <<SQL
+SELECT `items`.id, `items`.seller_id, su.account_name as seller_account_name, su.num_sell_items as seller_num_sell_items, bu.account_name as buyer_account_name, bu.num_sell_items as buyer_num_sell_items, `items`.buyer_id, `items`.status, name, price, description, image_name, `items`.created_at, `items`.updated_at, c.id as category_id, c.parent_id, c.category_name, p.`category_name` as parent_category_name, `transaction_evidences`.id as evidence_id, `transaction_evidences`.status as evidence_status, `shippings`.reserve_id
+FROM (SELECT * 
+    FROM `items`
+    WHERE (`items`.seller_id = 1 OR `items`.buyer_id = 10) 
+    AND `items`.status IN (?, ?, ?, ?, ?)
+    )as `items`
+INNER JOIN `categories` as c
+ON items.category_id=c.id 
+INNER JOIN categories as p ON c.parent_id = p.id
+LEFT OUTER JOIN `users`as su
+ON `items`.seller_id=su.id
+LEFT OUTER JOIN `users` as bu
+ON `items`.buyer_id=bu.id 
+LEFT OUTER JOIN `transaction_evidences`
+ON `transaction_evidences`.item_id=`items`.id
+LEFT OUTER JOIN `shippings`
+ON `shippings`.transaction_evidence_id=`transaction_evidences`.id
+ORDER BY `items`.created_at DESC,`items`.id DESC
+LIMIT  #{TRANSACTIONS_PER_PAGE + 1}
 SQL
                    db.xquery(sql_str, user['id'], user['id'], ITEM_STATUS_ON_SALE, ITEM_STATUS_TRADING, ITEM_STATUS_SOLD_OUT, ITEM_STATUS_CANCEL, ITEM_STATUS_STOP)
                 end
