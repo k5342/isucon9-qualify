@@ -347,12 +347,7 @@ module Isucari
             halt_with_error 404, 'shipping not found'
           end
 
-          ssr = begin
-            api_client.shipment_status(get_shipment_service_url, 'reserve_id' => shipping['reserve_id'])
-          rescue
-            db.query('ROLLBACK')
-            halt_with_error 500, 'failed to request to shipment service'
-          end
+          ssr = api_client.shipment_status(get_shipment_service_url, 'reserve_id' => shipping['reserve_id'])
 
           item_detail['transaction_evidence_id'] = transaction_evidence['id']
           item_detail['transaction_evidence_status'] = transaction_evidence['status']
