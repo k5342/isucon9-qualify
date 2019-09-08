@@ -329,9 +329,10 @@ SQL
                 end
 
       item_details = item_all.map do |item|
-        ssr = unless item['reserve_id'].nil?
+        ssr = {}
+        unless item['reserve_id'].nil?
           begin
-            api_client.shipment_status(get_shipment_service_url, 'reserve_id' => item['reserve_id'])
+            ssr = api_client.shipment_status(get_shipment_service_url, 'reserve_id' => item['reserve_id'])
           rescue
             db.query('ROLLBACK')
             halt_with_error 500, 'failed to request to shipment service'
