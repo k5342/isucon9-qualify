@@ -297,9 +297,37 @@ module Isucari
       end
 
       item_details = items.map do |item|
+        seller = get_user_simple_by_id(item['seller_id'])
+        if seller.nil?
+          db.query('ROLLBACK')
+          halt_with_error 404, 'seller not found'
+        end
+
+        category = get_category_by_id(item['category_id'])
+        if category.nil?
+          db.query('ROLLBACK')
+          halt_with_error 404, 'category not found'
+        end
         item_detail = {
+            'id' => item['id'],
+            'seller_id' => item['seller_id'],
+            'seller' => seller,
+            # buyer_id
+            # buyer
+            'status' => item['status'],
+            'name' => item['name'],
+            'price' => item['price'],
+            'description' => item['description'],
+            'image_url' => get_image_url(item['image_name']),
+            'category_id' => item['category_id'],
+            # transaction_evidence_id
+            # transaction_evidence_status
+            # shipping_status
+            'category' => category,
+            'created_at' => item['created_at'].to_i,
             'shipping_status' => 403
         }
+        return item_detail
       end
 
       return item_details
